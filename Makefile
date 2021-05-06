@@ -3,14 +3,16 @@ SHELL := /bin/bash
 # Get Arch for tag and hardware (Golang style) to run test
 arch_tag ?= $(shell ./tools/arch-tag)
 arch ?= $(arch_tag)
-ifeq ($(arch),ppc64el)
-	arch := ppc64le
-endif
+
+VAULT_VERSION ?= 1.7.1
+VAULT_GPGKEY ?= C874011F0AB405110D02105534365D9472D7468F
 
 EXECUTABLE := hznvaultauth
-DOCKER_INAME := openhorizon/$(arch)_vault
-DOCKER_TAG := testing
-DOCKER_DEV_OPTS :=  --rm --no-cache --build-arg ARCH=$(arch)
+DOCKER_INAME ?= openhorizon/$(arch)_vault
+VERSION ?= 1.0.0
+DOCKER_IMAGE_LABELS ?= --label "name=$(arch)_vault" --label "version=$(VERSION)" --label "vault_version=$(VAULT_VERSION)" --label "release=$(shell git rev-parse --short HEAD)"
+
+DOCKER_DEV_OPTS ?= --rm --no-cache --build-arg ARCH=$(arch) --build-arg VAULT_VERSION=$(VAULT_VERSION) --build-arg VAULT_GPGKEY=$(VAULT_GPGKEY)
 
 # license file name
 export LICENSE_FILE = LICENSE.txt
@@ -21,13 +23,13 @@ ifndef verbose
 .SILENT:
 endif
 
-all: $(EXECUTABLE)
+all: $(EXECUTABLE) vault-image
 check: test
 
 
 clean:
 	rm -f ./docker/bin/$(EXECUTABLE)
-	-@docker rmi $(DOCKER_INAME):$(DOCKER_TAG)
+	-@docker rmi $(DOCKER_INAME):$(VERSION) 2> /dev/null || :
 
 format:
 	@echo "Formatting all Golang source code with gofmt"
@@ -41,10 +43,10 @@ vault-image:
 	@echo "Handling $(DOCKER_INAME)"
 	if [ -n "$(shell docker images | grep '$(DOCKER_INAME)')" ]; then \
 		echo "Skipping since $(DOCKER_INAME) image exists, run 'make clean && make' if a rebuild is desired"; \
-	else \
+	elif [[ $(arch) == "amd64" ]]; then \
 		echo "Building container image $(DOCKER_INAME)"; \
-		docker build $(DOCKER_DEV_OPTS) -t $(DOCKER_INAME) -f docker/Dockerfile.ubi.$(arch) ./docker && docker tag $(DOCKER_INAME) $(DOCKER_INAME):$(DOCKER_TAG); \
-	fi
+		docker build $(DOCKER_DEV_OPTS)  $(DOCKER_IMAGE_LABELS) -t $(DOCKER_INAME):$(VERSION) -f docker/Dockerfile.ubi.$(arch) ./docker; \
+	else echo "Building the anax docker image is not supported on $(arch)"; fi
 
 test:
 	@echo "Executing unit tests"
