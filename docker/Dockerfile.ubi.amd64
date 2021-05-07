@@ -4,14 +4,13 @@ LABEL vendor="IBM"
 LABEL summary="The secrets vault."
 LABEL description="The vault manages secrets used by applications deployed to edge nodes."
 
-ARG DOCKER_VER=19.03.8
-
 # add license file
 RUN mkdir -p /licenses
 COPY LICENSE.txt /licenses
 
-# This is the release of Vault to pull in.
-ARG VAULT_VERSION=1.6.2
+# This is the release of Vault to pull in and the key to verify the download.
+ARG VAULT_VERSION
+ARG VAULT_GPGKEY
 
 # Create a vault user and group first so the IDs get set the same way.
 
@@ -20,7 +19,6 @@ RUN set -eux; \
     microdnf update -y; \
     microdnf install -y ca-certificates shadow-utils gnupg openssl libcap wget tzdata unzip && \
     ARCH='amd64'; \
-    VAULT_GPGKEY=91A6E7F85D05C65630BEF18951852D87348FFC4C; \
     found=''; \
     for server in \
         hkp://p80.pool.sks-keyservers.net:80 \
@@ -48,11 +46,9 @@ RUN set -eux; \
     rm -rf /root/.gnupg  && \
     microdnf clean all
 
-# /vault/logs is made available to use as a location to store audit logs, if
-# desired; /vault/file is made available to use as a location with the file
-# storage backend, if desired; the server will be started with /vault/config as
-# the configuration directory so you can add additional config files in that
-# location.
+# /vault/logs is made available to use as a location to store audit logs
+# /vault/file is made available to use as a location with the file storage backend
+# the server will be started with /vault/config as the configuration directory so you can add additional config files in that location.
 RUN groupadd vault && \
     useradd -r -g vault vault
 
@@ -63,9 +59,10 @@ RUN mkdir -p /vault/logs && \
     mkdir -p /vault/plugins && \
     mkdir -p /openhorizon/policy && \
     mkdir -p $HOME && \
-    chown -R vault /vault && chown -R vault $HOME && \ 
+    chown -R vault /vault && chown -R vault $HOME && chown -R vault /openhorizon && \
     chgrp -R 0 $HOME && chmod -R g+rwX $HOME && \
-    chgrp -R 0 /vault && chmod -R g+rwX /vault
+    chgrp -R 0 /vault && chmod -R g+rwX /vault && \
+    chgrp -R 0 /openhorizon && chmod -R g+rwX /openhorizon
 	
 
 # Expose the logs directory as a volume since there's potentially long-running
@@ -80,19 +77,24 @@ VOLUME /vault/file
 # Vault.
 EXPOSE 8200
 
+# For production derivatives of this container, you shoud add the IPC_LOCK
+# capability so that Vault can mlock memory.
+RUN curl -4LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && \
+    chmod +x ./kubectl && \
+    mv ./kubectl /usr/local/bin
+
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/auto-unseal.sh /usr/local/bin/auto-unseal.sh
+COPY scripts/renewToken.sh /usr/local/bin/renewToken.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/auto-unseal.sh && \
+    chmod +x /usr/local/bin/renewToken.sh
+
 # The entry point script uses dumb-init as the top-level process to reap any
 # zombie processes created by Vault sub-processes.
 #
-
-# COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# COPY scripts/auto-unseal.sh /usr/local/bin/auto-unseal.sh
-# COPY scripts/renewToken.sh /usr/local/bin/renewToken.sh
-
-# RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
-#     chmod +x /usr/local/bin/auto-unseal.sh && \
-#     chmod +x /usr/local/bin/renewToken.sh
-
-# ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["entrypoint.sh"]
 
 COPY bin/hznvaultauth /vault/plugins/hznvaultauth
 COPY config/config.hcl /vault/config/config.hcl
