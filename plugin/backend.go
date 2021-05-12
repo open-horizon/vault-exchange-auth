@@ -13,6 +13,7 @@ const AUTH_TOKEN_KEY = "token"
 
 const CONFIG_EXCHANGE_URL_KEY = "url"
 const CONFIG_TOKEN_KEY = "token"
+const CONFIG_AGBOT_RENEWAL_KEY = "renewal"
 
 type ohAuthPlugin struct {
 
@@ -23,7 +24,7 @@ type ohAuthPlugin struct {
 	httpClient *http.Client
 
 	// A vault client used to interact with the system.
-	vc         *api.Client
+	vc *api.Client
 }
 
 func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
@@ -45,7 +46,7 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 
 	b.Backend = &framework.Backend{
 		BackendType: logical.TypeCredential,
-		//AuthRenew:   b.pathAuthRenew,
+		AuthRenew:   b.pathAuthRenew,
 		PathsSpecial: &logical.Paths{
 			Unauthenticated: []string{"login"},
 			SealWrapStorage: []string{"config"},
@@ -57,7 +58,7 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 					AUTH_USER_KEY: &framework.FieldSchema{
 						Type: framework.TypeString,
 					},
-					AUTH_TOKEN_KEY : &framework.FieldSchema{
+					AUTH_TOKEN_KEY: &framework.FieldSchema{
 						Type: framework.TypeString,
 					},
 				},
@@ -73,6 +74,9 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 					},
 					CONFIG_TOKEN_KEY: &framework.FieldSchema{
 						Type: framework.TypeString,
+					},
+					CONFIG_AGBOT_RENEWAL_KEY: &framework.FieldSchema{
+						Type: framework.TypeInt,
 					},
 				},
 				Callbacks: map[logical.Operation]framework.OperationFunc{

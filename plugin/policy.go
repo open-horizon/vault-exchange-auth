@@ -5,8 +5,12 @@ import (
 )
 
 // Policy name formats
+const AGBOT_POLICY_NAME = `openhorizon-agbot`
 const ADMIN_POLICY_NAME = `openhorizon-%s-%s-admin`
 const USER_POLICY_NAME = `openhorizon-%s-%s`
+
+// Openhorizon agbots will have these ACL policies attached.
+const AGBOT_POLICY = `path "openhorizon/*" {capabilities = ["list","read"]}`
 
 // Openhorizon org admins will have these ACL policies attached.
 const ADMIN_ORG_WIDE_POLICY = `path "openhorizon/%s/*" {capabilities = ["list", "read", "create", "delete", "update"]}`
@@ -18,7 +22,6 @@ const USER_PRIVATE_DENY_POLICY = `path "openhorizon/%s/user/*" {capabilities = [
 
 // All supported openhorizon users will have these policies attached.
 const USER_PRIVATE_POLICY = `path "openhorizon/%s/user/%s/*" {capabilities = ["list", "read", "create", "delete", "update"]}`
-
 
 // Ensure that the right ACL policies exist so that they can be attached to the user's token.
 func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bool, vaultToken string) (policyName string, err error) {
@@ -55,7 +58,7 @@ func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bo
 	// Create a policy for the user. If this user has been seen before, the correct policy might already exist.
 	policyName = getPolicyName(userOrg, userId, admin)
 
-	np, err :=sysVC.GetPolicy(policyName)
+	np, err := sysVC.GetPolicy(policyName)
 
 	if err != nil {
 		o.Logger().Error(ohlog(fmt.Sprintf("GetPolicy for %v failed, error: %v", policyName, err)))
@@ -81,6 +84,42 @@ func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bo
 		// Log successful creation of the policy.
 		if o.Logger().IsInfo() {
 			o.Logger().Info(ohlog(fmt.Sprintf("PutPolicy for %v successful", policyName)))
+		}
+
+	}
+
+	return
+}
+
+// Ensure that the right ACL policies exist so that they can be attached to the user's token.
+func (o *ohAuthPlugin) setupAgbotPolicies(vaultToken string) (err error) {
+
+	o.vc.SetToken(vaultToken)
+
+	// Get a handle to the vault system APIs
+	sysVC := o.vc.Sys()
+
+	// Create a policy for the agbot. If the agbot has been seen before, the correct policy might already exist.
+	np, err := sysVC.GetPolicy(AGBOT_POLICY_NAME)
+
+	if err != nil {
+		o.Logger().Error(ohlog(fmt.Sprintf("GetPolicy for %v failed, error: %v", AGBOT_POLICY_NAME, err)))
+		return err
+	}
+
+	// If a policy does not already exist for the agbot, create it.
+	if np == "" {
+
+		// Add the policy to the vault.
+		err := sysVC.PutPolicy(AGBOT_POLICY_NAME, AGBOT_POLICY)
+		if err != nil {
+			o.Logger().Error(ohlog(fmt.Sprintf("PutPolicy for %v failed, error: %v", AGBOT_POLICY_NAME, err)))
+			return err
+		}
+
+		// Log successful creation of the policy.
+		if o.Logger().IsInfo() {
+			o.Logger().Info(ohlog(fmt.Sprintf("PutPolicy for %v successful", AGBOT_POLICY_NAME)))
 		}
 
 	}

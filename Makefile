@@ -26,7 +26,6 @@ endif
 all: $(EXECUTABLE) vault-image
 check: test
 
-
 clean:
 	rm -f ./docker/bin/$(EXECUTABLE)
 	-@docker rmi $(DOCKER_INAME):$(VERSION) 2> /dev/null || :
