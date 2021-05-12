@@ -19,7 +19,6 @@ const EX_RETRY_INTERVAL = 2
 
 const HUB_CERT_PATH = "/openhorizon/certs/hub.crt"
 
-
 // Create an https connection, using a supplied SSL CA certificate.
 func NewHTTPClient() (*http.Client, error) {
 
@@ -35,7 +34,7 @@ func NewHTTPClient() (*http.Client, error) {
 			return nil, errors.New(fmt.Sprintf("unable to read %v, error %v", HUB_CERT_PATH, err))
 		}
 
-		// Setup the TLS confif if there is a cert.		
+		// Setup the TLS confif if there is a cert.
 		tlsConf.InsecureSkipVerify = false
 
 		// Do not allow negotiation to previous versions of TLS.
@@ -124,8 +123,10 @@ func (o *ohAuthPlugin) invokeExchange(url string, user string, pw string) (*http
 	}
 
 	// Add the basic auth header so that the exchange will authenticate.
-	req.SetBasicAuth(user, pw)
-	req.Header.Add("Accept", "application/json")
+	if user != "" && pw != "" {
+		req.SetBasicAuth(user, pw)
+		req.Header.Add("Accept", "application/json")
+	}
 	req.Close = true
 
 	// Send the request to verify the user.
