@@ -69,6 +69,12 @@ func (o *ohAuthPlugin) AuthenticateAsAgbot(exURL string, tok string, renewal int
 	}
 
 	// Return the authentication results to the framework.
+	// This response indicates a couple of things:
+	// - The access control policies that should be given to an agbot user.
+	// - Some secret context that the the renew function can check to ensure that it is called by the right entity.
+	// - The time period for which the token should remain valid, it's a "periodic" token.
+	// - The token type, which is a long running service token.
+	// - How the current lease for the token shuld behave, in this case it is renewable. the agbot will actively renew it.
 	return &logical.Response{
 		Auth: &logical.Auth{
 			Policies: []string{AGBOT_POLICY_NAME},
@@ -79,9 +85,9 @@ func (o *ohAuthPlugin) AuthenticateAsAgbot(exURL string, tok string, renewal int
 			Metadata: map[string]string{
 				"agbot": strconv.FormatBool(true),
 			},
+			Period: time.Duration(renewal) * time.Second,
+			TokenType: logical.TokenTypeService,
 			LeaseOptions: logical.LeaseOptions{
-				TTL:       time.Duration(renewal) * time.Second,
-				MaxTTL:    time.Duration(renewal*2) * time.Second,
 				Renewable: true,
 			},
 		},

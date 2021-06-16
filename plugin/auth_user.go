@@ -100,7 +100,11 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 	}
 
 	// Return the authentication results to the framework.
-	// TODO: Shorten the lease time on these
+	// This response indicates a couple of things:
+	// - The access control policies that should be given to the user.
+	// - An indication if the user is an exchange admin, which conditions the ACLs that are applied.
+	// - The time limit for which the token should remain valid, it can be used for a short time and then it expires.
+	// - How the current lease for the token shuld behave, in this case it is not renewable.
 	return &logical.Response{
 		Auth: &logical.Auth{
 			Policies: []string{policyName},
@@ -108,8 +112,7 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 				"admin": strconv.FormatBool(foundAdminUser),
 			},
 			LeaseOptions: logical.LeaseOptions{
-				TTL:       30 * time.Minute,
-				MaxTTL:    60 * time.Minute,
+				TTL:       2 * time.Minute,
 				Renewable: false,
 			},
 		},
