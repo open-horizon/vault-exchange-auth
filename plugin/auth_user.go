@@ -36,11 +36,6 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 	// Iterate through the users in the response. There should be one or none.
 	for key, userInfo := range users.Users {
 
-		// Skip users that are not the user logging in. This should never occur, just being defensive.
-		if key != username {
-			continue
-		}
-
 		// Ensure that the returned key is in the expected {orgid}/{username} format.
 		if orgAndUsername := strings.Split(key, "/"); len(orgAndUsername) != 2 {
 			o.Logger().Error(ohlog(fmt.Sprintf("returned user (%s) has unsupported format, should be org/user", key)))
