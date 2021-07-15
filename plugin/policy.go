@@ -13,7 +13,7 @@ const USER_POLICY_NAME = `openhorizon-%s-%s`
 const AGBOT_POLICY = `path "openhorizon/*" {capabilities = ["list","read"]}`
 
 // Openhorizon org admins will have these ACL policies attached.
-const ADMIN_ORG_WIDE_POLICY1 = `path "openhorizon/data/%s/*" {capabilities = ["create", "update"]}`
+const ADMIN_ORG_WIDE_POLICY1 = `path "openhorizon/data/%s/*" {capabilities = ["create", "update", "read"]}`
 const ADMIN_ORG_WIDE_POLICY2 = `path "openhorizon/metadata/%s/*" {capabilities = ["list", "read", "delete"]}`
 const ADMIN_USER_PRIVATE_POLICY = `path "openhorizon/metadata/%s/user/*" {capabilities = ["delete"]}`
 
@@ -23,7 +23,7 @@ const USER_PRIVATE_DENY_POLICY1 = `path "openhorizon/data/%s/user/*" {capabiliti
 const USER_PRIVATE_DENY_POLICY2 = `path "openhorizon/metadata/%s/user/*" {capabilities = ["deny"]}`
 
 // All supported openhorizon users will have these policies attached.
-const USER_PRIVATE_POLICY1 = `path "openhorizon/data/%s/user/%s/*" {capabilities = ["create", "update"]}`
+const USER_PRIVATE_POLICY1 = `path "openhorizon/data/%s/user/%s/*" {capabilities = ["create", "update", "read"]}`
 const USER_PRIVATE_POLICY2 = `path "openhorizon/metadata/%s/user/%s/*" {capabilities = ["list", "read", "delete"]}`
 
 // Ensure that the right ACL policies exist so that they can be attached to the user's token.
