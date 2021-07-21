@@ -6,6 +6,7 @@ arch ?= $(arch_tag)
 
 VAULT_VERSION ?= 1.7.1
 VAULT_GPGKEY ?= C874011F0AB405110D02105534365D9472D7468F
+VAULT_PLUGIN_HASH := ""
 
 EXECUTABLE := hznvaultauth
 DOCKER_INAME ?= openhorizon/$(arch)_vault
@@ -13,7 +14,7 @@ VERSION ?= 1.0.0
 DEV_VERSION ?=testing
 DOCKER_IMAGE_LABELS ?= --label "name=$(arch)_vault" --label "version=$(VERSION)" --label "vault_version=$(VAULT_VERSION)" --label "release=$(shell git rev-parse --short HEAD)"
 
-DOCKER_DEV_OPTS ?= --rm --no-cache --build-arg ARCH=$(arch) --build-arg VAULT_VERSION=$(VAULT_VERSION) --build-arg VAULT_GPGKEY=$(VAULT_GPGKEY)
+DOCKER_DEV_OPTS ?= --rm --no-cache --build-arg ARCH=$(arch) --build-arg VAULT_VERSION=$(VAULT_VERSION) --build-arg VAULT_GPGKEY=$(VAULT_GPGKEY) --build-arg VAULT_PLUGIN_HASH=$(VAULT_PLUGIN_HASH) 
 
 # license file name
 export LICENSE_FILE = LICENSE.txt
@@ -41,13 +42,15 @@ $(EXECUTABLE): $(shell find . -name '*.go')
 	@echo "Producing $(EXECUTABLE) for arch: amd64"
 	$(COMPILE_ARGS) go build -o ./docker/bin/$(EXECUTABLE)
 
+vault-image: VAULT_PLUGIN_HASH=$(shell shasum -a 256 ./docker/bin/$(EXECUTABLE) | awk '{ print $$1 }')
+
 vault-image:
-	@echo "Handling $(DOCKER_INAME):$(VERSION)"
+	@echo "Handling $(DOCKER_INAME):$(VERSION) with hash $(VAULT_PLUGIN_HASH)"
 	if [ -n "$(shell docker images | grep '$(DOCKER_INAME):$(VERSION)')" ]; then \
 		echo "Skipping since $(DOCKER_INAME):$(VERSION) image exists, run 'make clean && make' if a rebuild is desired"; \
 	elif [[ $(arch) == "amd64" ]]; then \
 		echo "Building container image $(DOCKER_INAME):$(VERSION)"; \
-		docker build $(DOCKER_DEV_OPTS)  $(DOCKER_IMAGE_LABELS) -t $(DOCKER_INAME):$(VERSION) -f docker/Dockerfile.ubi.$(arch) ./docker; \
+		docker build $(DOCKER_DEV_OPTS) $(DOCKER_IMAGE_LABELS) -t $(DOCKER_INAME):$(VERSION) -f docker/Dockerfile.ubi.$(arch) ./docker; \
 	else echo "Building the vault docker image is not supported on $(arch)"; fi
 
 vault-dev-image:
