@@ -14,6 +14,7 @@ const AUTH_TOKEN_KEY = "token"
 const CONFIG_EXCHANGE_URL_KEY = "url"
 const CONFIG_TOKEN_KEY = "token"
 const CONFIG_AGBOT_RENEWAL_KEY = "renewal"
+const CONFIG_VAULT_API_KEY = "apiurl"
 
 type ohAuthPlugin struct {
 
@@ -40,9 +41,6 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 	if err != nil {
 		panic(ohlog(fmt.Sprintf("could not create vault client, error: %v", err)))
 	}
-
-	// TODO: set address based on dev mode or not. Non-dev mode might use SSL.
-	b.vc.SetAddress("http://localhost:8200")
 
 	b.Backend = &framework.Backend{
 		BackendType: logical.TypeCredential,
@@ -77,6 +75,9 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 					},
 					CONFIG_AGBOT_RENEWAL_KEY: &framework.FieldSchema{
 						Type: framework.TypeInt,
+					},
+					CONFIG_VAULT_API_KEY: &framework.FieldSchema{
+						Type: framework.TypeString,
 					},
 				},
 				Callbacks: map[logical.Operation]framework.OperationFunc{

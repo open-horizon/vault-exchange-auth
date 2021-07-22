@@ -12,8 +12,10 @@ import (
 const EXCHANGE_URL_STORAGE_KEY = "exchange-url"
 const VAULT_TOKEN_STORAGE_KEY = "agbot-vault-token"
 const AGBOT_RENEWAL_KEY = "agbot-renewal"
+const VAULT_APIURL_STORAGE_KEY = "vault-url"
 
 const DEFAULT_RENEWAL_RATE = 300
+const DEFAULT_APIURL = "http://localhost:8200"
 
 func (o *ohAuthPlugin) pathConfig(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 
@@ -60,8 +62,19 @@ func (o *ohAuthPlugin) pathConfig(ctx context.Context, req *logical.Request, d *
 	}
 	req.Storage.Put(ctx, &logical.StorageEntry{Key: AGBOT_RENEWAL_KEY, Value: []byte(strconv.Itoa(renewal))})
 
+	// Store the vault API URL used by the plugin to invoke vault APIs.
+	vaultAPIURL := d.Get(CONFIG_VAULT_API_KEY).(string)
+	if vaultAPIURL == "" {
+		vaultAPIURL = DEFAULT_APIURL
+	}
+	req.Storage.Put(ctx, &logical.StorageEntry{Key: VAULT_APIURL_STORAGE_KEY, Value: []byte(token)})
+
+	// Set the URL into the vault client object.
+	o.vc.SetAddress(vaultAPIURL)
+
+	// Log the config
 	if o.Logger().IsInfo() {
-		o.Logger().Info(ohlog(fmt.Sprintf("config is set, url: %v, token: ********, renewal: %v", url, renewal)))
+		o.Logger().Info(ohlog(fmt.Sprintf("config is set, exchange url: %v, token: ********, renewal: %v, vault API URL: %v", url, renewal, vaultAPIURL)))
 	}
 
 	return nil, nil
