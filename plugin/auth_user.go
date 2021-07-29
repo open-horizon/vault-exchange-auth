@@ -25,25 +25,37 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 		return nil, err
 	}
 
+	// Log a successful exchange authentication
+	if o.Logger().IsInfo() {
+		o.Logger().Info(ohlog(fmt.Sprintf("user (%s/%s) successfuly authenticated with the exchange", userOrg, userId)))
+	}
+
 	// Attach ACL policies to the user's token to ensure that the user can only access secrets in it's org and secrets
 	// that are private to that user. The policy that is attached is different for org admins vs non-admin users. Org admins
 	// can work with org wide secrets and delete user private secrets.
 	foundUser := false
 	foundAdminUser := false
 	policyName := ""
-	username := fmt.Sprintf("%s/%s", userOrg, userId)
+	var fullOrgUser string
 
 	// Iterate through the users in the response. There should be one or none.
 	for key, userInfo := range users.Users {
 
 		// Ensure that the returned key is in the expected {orgid}/{username} format.
-		if orgAndUsername := strings.Split(key, "/"); len(orgAndUsername) != 2 {
+		orgAndUsername := strings.Split(key, "/")
+		if len(orgAndUsername) != 2 {
 			o.Logger().Error(ohlog(fmt.Sprintf("returned user (%s) has unsupported format, should be org/user", key)))
 			return nil, logical.ErrPermissionDenied
 		}
 
+		// Log a found user
+		fullOrgUser = key
+		if o.Logger().IsInfo() {
+			o.Logger().Info(ohlog(fmt.Sprintf("user (%s) found in the exchange", fullOrgUser)))
+		}
+		
 		// Interrogate the response to find the user that we're trying to authenticate.
-		if key == fmt.Sprintf("%s/%s", EX_ROOT_USER, EX_ROOT_USER) {
+		if fullOrgUser == fmt.Sprintf("%s/%s", EX_ROOT_USER, EX_ROOT_USER) {
 			// exchange root user (root/root:{pwd}), no permission
 			o.Logger().Error(ohlog(fmt.Sprintf("user (root/root) is not supported")))
 			return nil, logical.ErrPermissionDenied
@@ -51,7 +63,7 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 
 		if userInfo.HubAdmin {
 			// hubAdmin, no permission
-			o.Logger().Error(ohlog(fmt.Sprintf("user (%s) is a hubadmin, which is not supported", username)))
+			o.Logger().Error(ohlog(fmt.Sprintf("user (%s) is a hubadmin, which is not supported", fullOrgUser)))
 			return nil, logical.ErrPermissionDenied
 		}
 
@@ -61,9 +73,9 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 			foundAdminUser = true
 
 			// Ensure that the vault ACL policies needed by this user are defined in the vault.
-			policyName, err = o.setupUserPolicies(userOrg, userId, foundAdminUser, tok)
+			policyName, err = o.setupUserPolicies(userOrg, orgAndUsername[1], foundAdminUser, tok)
 			if err != nil {
-				o.Logger().Error(ohlog(fmt.Sprintf("unable to setup ACL policies for user (%s/%s) as an admin, error: %v", userOrg, userId, err)))
+				o.Logger().Error(ohlog(fmt.Sprintf("unable to setup ACL policies for user (%s) as an admin, error: %v", fullOrgUser, err)))
 				return nil, logical.ErrPermissionDenied
 			}
 
@@ -73,9 +85,9 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 			foundUser = true
 
 			// Ensure that the vault ACL policies needed by this user are defined in the vault.
-			policyName, err = o.setupUserPolicies(userOrg, userId, !foundUser, tok)
+			policyName, err = o.setupUserPolicies(userOrg, orgAndUsername[1], !foundUser, tok)
 			if err != nil {
-				o.Logger().Error(ohlog(fmt.Sprintf("unable to setup ACL policies for user (%s/%s), error: %v", userOrg, userId, err)))
+				o.Logger().Error(ohlog(fmt.Sprintf("unable to setup ACL policies for user (%s), error: %v", fullOrgUser, err)))
 				return nil, logical.ErrPermissionDenied
 			}
 
@@ -91,7 +103,7 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 
 	// Log a successful authentication.
 	if o.Logger().IsInfo() {
-		o.Logger().Info(ohlog(fmt.Sprintf("user (%s/%s) authenticated", userOrg, userId)))
+		o.Logger().Info(ohlog(fmt.Sprintf("user (%s) authenticated", fullOrgUser)))
 	}
 
 	// Return the authentication results to the framework.
@@ -105,6 +117,7 @@ func (o *ohAuthPlugin) AuthenticateAsUser(exURL, tok, userOrg, userId, password 
 			Policies: []string{policyName},
 			Metadata: map[string]string{
 				"admin": strconv.FormatBool(foundAdminUser),
+				"exchangeUser": fullOrgUser,
 			},
 			LeaseOptions: logical.LeaseOptions{
 				TTL:       2 * time.Minute,
