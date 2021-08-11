@@ -15,9 +15,10 @@ const AGBOT_POLICY = `path "openhorizon/*" {capabilities = ["list","read"]}`
 // Openhorizon org admins will have these ACL policies attached.
 const ADMIN_ORG_WIDE_POLICY1 = `path "openhorizon/data/%s/*" {capabilities = ["create", "update", "read"]}`
 const ADMIN_ORG_WIDE_POLICY2 = `path "openhorizon/metadata/%s/*" {capabilities = ["list", "read", "delete"]}`
-const ADMIN_USER_PRIVATE_POLICY = `path "openhorizon/metadata/%s/user/*" {capabilities = ["delete"]}`
 
 // Regular openhorizon users will have these ACL policies attached.
+// note: USER_PRIVATE_DENY_POLICY1 is also given to admins to prevent them from being able to read 
+// other user's private secrets
 const NON_ADMIN_ORG_WIDE_POLICY = `path "openhorizon/metadata/%s/*" {capabilities = ["list"]}`
 const USER_PRIVATE_DENY_POLICY1 = `path "openhorizon/data/%s/user/*" {capabilities = ["deny"]}`
 const USER_PRIVATE_DENY_POLICY2 = `path "openhorizon/metadata/%s/user/*" {capabilities = ["deny"]}`
@@ -145,10 +146,9 @@ func getPolicyString(userOrg string, userId string, admin bool) (policyString st
 	if admin {
 		adminPolicy1 := fmt.Sprintf(ADMIN_ORG_WIDE_POLICY1, userOrg)
 		adminPolicy2 := fmt.Sprintf(ADMIN_ORG_WIDE_POLICY2, userOrg)
-		adminUserPrivatePolicy := fmt.Sprintf(ADMIN_USER_PRIVATE_POLICY, userOrg)
 		userPrivatePolicy1 := fmt.Sprintf(USER_PRIVATE_POLICY1, userOrg, userId)
-		userPrivatePolicy2 := fmt.Sprintf(USER_PRIVATE_POLICY2, userOrg, userId)
-		policyString = fmt.Sprintf("%s %s %s %s %s", adminPolicy1, adminPolicy2, adminUserPrivatePolicy, userPrivatePolicy1, userPrivatePolicy2)
+		userPrivateDenyPolicy := fmt.Sprintf(USER_PRIVATE_DENY_POLICY1, userOrg)
+		policyString = fmt.Sprintf("%s %s %s %s", adminPolicy1, adminPolicy2, userPrivatePolicy1, userPrivateDenyPolicy)
 	} else {
 		nonAdminPolicy := fmt.Sprintf(NON_ADMIN_ORG_WIDE_POLICY, userOrg)
 		adminUserPrivateDeny1 := fmt.Sprintf(USER_PRIVATE_DENY_POLICY1, userOrg)
