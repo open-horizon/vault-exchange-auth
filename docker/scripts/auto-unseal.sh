@@ -18,12 +18,16 @@ do
   elif  [ `kubectl get secret |grep "$vault_keys" |wc -l` == 0 ]; then
     output="Unseal tokens are not found."
   else 
+
+    set +x
     keys=`kubectl get secret $vault_keys -o=jsonpath='{.data.keys}'|base64 -d`
     IFS=$',' keys=( $keys )
     for var in ${keys[@]}  
     do    
       vault operator unseal $var
     done
+    set -x
+
     output="Unseal keys were submitted."
   fi
   dataStr=`date`

@@ -19,7 +19,7 @@ ARG VAULT_PLUGIN_HASH
 # Set up certificates, our base tools, and Vault.
 RUN set -eux; \
     microdnf update -y; \
-    microdnf install -y ca-certificates shadow-utils gnupg openssl libcap wget tzdata unzip && \
+    microdnf install -y ca-certificates shadow-utils gnupg openssl libcap wget tzdata unzip tar && \
     found=''; \
     for server in \
         hkp://p80.pool.sks-keyservers.net:80 \
