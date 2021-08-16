@@ -2,7 +2,7 @@
 unsealed=false
 
 if [ "$VAULT_KEYS" == "" ];then 
-  VAULT_KEYS=ibm-cp-vault-keys
+  VAULT_KEYS=ibm-edge-auth
 fi
 vault_keys=$VAULT_KEYS
 
@@ -20,7 +20,7 @@ do
   else 
 
     set +x
-    keys=`kubectl get secret $vault_keys -o=jsonpath='{.data.keys}'|base64 -d`
+    keys=`kubectl get secret $vault_keys -o=jsonpath='{.data.vault-unseal-keys}'|base64 -d`
     IFS=$',' keys=( $keys )
     for var in ${keys[@]}  
     do    
