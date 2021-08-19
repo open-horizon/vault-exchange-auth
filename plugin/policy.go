@@ -19,7 +19,7 @@ const ADMIN_ORG_WIDE_POLICY2 = `path "openhorizon/metadata/%s/*" {capabilities =
 // Regular openhorizon users will have these ACL policies attached.
 // note: USER_PRIVATE_DENY_POLICY1 is also given to admins to prevent them from being able to read 
 // other user's private secrets
-const NON_ADMIN_ORG_WIDE_POLICY = `path "openhorizon/metadata/%s/*" {capabilities = ["list"]}`
+const NON_ADMIN_ORG_WIDE_POLICY = `path "openhorizon/metadata/%s/*" {capabilities = ["list", "read"]}`
 const USER_PRIVATE_DENY_POLICY1 = `path "openhorizon/data/%s/user/*" {capabilities = ["deny"]}`
 const USER_PRIVATE_DENY_POLICY2 = `path "openhorizon/metadata/%s/user/*" {capabilities = ["deny"]}`
 
