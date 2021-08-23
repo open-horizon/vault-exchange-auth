@@ -53,13 +53,13 @@ func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bo
 			return "", err
 		}
 
-		if o.Logger().IsDebug() {
-			o.Logger().Debug(ohlog(fmt.Sprintf("user (%s/%s) admin status changed, deleted policy %v", userOrg, userId, oldPolicyName)))
+		if o.Logger().IsInfo() {
+			o.Logger().Info(ohlog(fmt.Sprintf("user (%s/%s) admin status changed, deleted old policy %v", userOrg, userId, oldPolicyName)))
 		}
 
 	}
 
-	// Create a policy for the user. If this user has been seen before, the correct policy might already exist.
+	// Create a policy for the user. Make sure this new policy does not already exist.
 	policyName = getPolicyName(userOrg, userId, admin)
 
 	np, err := sysVC.GetPolicy(policyName)
@@ -69,27 +69,38 @@ func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bo
 		return "", err
 	}
 
-	// If a policy does not already exist for this user, create it.
-	if np == "" {
-		// Construct an in-memory policy definition specifically for this user.
-		policyString := getPolicyString(userOrg, userId, admin)
-
-		if o.Logger().IsDebug() {
-			o.Logger().Debug(ohlog(fmt.Sprintf("constructed policy %v for user (%s/%s)", policyString, userOrg, userId)))
-		}
-
-		// Add the policy to the vault.
-		err := sysVC.PutPolicy(policyName, policyString)
+	// If there is a new policy, delete it.
+	if np != "" {
+		err := sysVC.DeletePolicy(np)
 		if err != nil {
-			o.Logger().Error(ohlog(fmt.Sprintf("PutPolicy for %v failed, error: %v", policyName, err)))
+			o.Logger().Error(ohlog(fmt.Sprintf("DeletePolicy for %v failed, error: %v", np, err)))
 			return "", err
 		}
 
-		// Log successful creation of the policy.
 		if o.Logger().IsInfo() {
-			o.Logger().Info(ohlog(fmt.Sprintf("PutPolicy for %v successful", policyName)))
+			o.Logger().Info(ohlog(fmt.Sprintf("Deleted policy %v for user (%s/%s)", np, userOrg, userId)))
 		}
 
+	}
+
+	// Create the ACL policy for this user.
+
+	// Construct an in-memory policy definition specifically for this user.
+	policyString := getPolicyString(userOrg, userId, admin)
+
+	if o.Logger().IsInfo() {
+		o.Logger().Info(ohlog(fmt.Sprintf("constructed policy %v for user (%s/%s)", policyString, userOrg, userId)))
+	}
+
+	// Add the policy to the vault.
+	if err := sysVC.PutPolicy(policyName, policyString); err != nil {
+		o.Logger().Error(ohlog(fmt.Sprintf("PutPolicy for %v failed, error: %v", policyName, err)))
+		return "", err
+	}
+
+	// Log successful creation of the policy.
+	if o.Logger().IsInfo() {
+		o.Logger().Info(ohlog(fmt.Sprintf("PutPolicy for %v successful", policyName)))
 	}
 
 	return
