@@ -32,7 +32,7 @@ RUN set -eux; \
     test -z "$found" && echo >&2 "error: failed to fetch GPG key $VAULT_GPGKEY" && exit 1; \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
-	wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && \
+    wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && \
     chmod +x /usr/local/bin/dumb-init && \
     wget https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_${ARCH}.zip && \
     wget https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_SHA256SUMS && \
@@ -50,21 +50,21 @@ RUN set -eux; \
 # /vault/logs is made available to use as a location to store audit logs
 # /vault/file is made available to use as a location with the file storage backend
 # the server will be started with /vault/config as the configuration directory so you can add additional config files in that location.
-RUN groupadd vault && \
-    useradd -r -g vault vault
+RUN groupadd -g 1001 vault && \
+    useradd -rm -u 1001 -g vault vault
 ENV VAULT_PLUGIN_HASH ${VAULT_PLUGIN_HASH}
 ENV HOME /home/vault
 RUN mkdir -p /vault/logs && \
     mkdir -p /vault/file && \
     mkdir -p /vault/config && \
     mkdir -p /vault/plugins && \
+    mkdir -p /vault/keys && \
     mkdir -p /openhorizon/policy && \
-    mkdir -p $HOME && \
     chown -R vault /vault && chown -R vault $HOME && chown -R vault /openhorizon && \
     chgrp -R 0 $HOME && chmod -R g+rwX $HOME && \
     chgrp -R 0 /vault && chmod -R g+rwX /vault && \
     chgrp -R 0 /openhorizon && chmod -R g+rwX /openhorizon
-	
+
 
 # Expose the logs directory as a volume since there's potentially long-running
 # state in there
