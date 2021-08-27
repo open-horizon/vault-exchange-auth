@@ -58,7 +58,6 @@ RUN mkdir -p /vault/logs && \
     mkdir -p /vault/file && \
     mkdir -p /vault/config && \
     mkdir -p /vault/plugins && \
-    mkdir -p /vault/keys && \
     mkdir -p /openhorizon/policy && \
     chown -R vault /vault && chown -R vault $HOME && chown -R vault /openhorizon && \
     chgrp -R 0 $HOME && chmod -R g+rwX $HOME && \
