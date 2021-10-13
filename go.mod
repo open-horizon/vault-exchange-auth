@@ -1,6 +1,6 @@
 module github.com/open-horizon/vault-exchange-auth
 
-go 1.14
+go 1.16
 
 require (
 	github.com/hashicorp/vault/api v1.1.1
