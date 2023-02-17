@@ -46,31 +46,41 @@ func (o *ohAuthPlugin) pathConfig(ctx context.Context, req *logical.Request, d *
 		return nil, OtherError{Msg: fmt.Sprintf("unable to verify exchange URL (%s), HTTP code %v", url, resp.StatusCode)}
 	}
 
-	req.Storage.Put(ctx, &logical.StorageEntry{Key: EXCHANGE_URL_STORAGE_KEY, Value: []byte(url)})
+	if err = req.Storage.Put(ctx, &logical.StorageEntry{Key: EXCHANGE_URL_STORAGE_KEY, Value: []byte(url)}); err != nil {
+		return nil, errors.New(ohlog(fmt.Sprintf("failed to write secret (%s), error: %v", EXCHANGE_URL_STORAGE_KEY, err)))
+	}
 
 	// Store the vault token used to setup the vault.
 	token := d.Get(CONFIG_TOKEN_KEY).(string)
 	if token == "" {
 		return nil, errors.New(ohlog(fmt.Sprintf("%s is a required parameter", CONFIG_TOKEN_KEY)))
 	}
-	req.Storage.Put(ctx, &logical.StorageEntry{Key: VAULT_TOKEN_STORAGE_KEY, Value: []byte(token)})
+	if err = req.Storage.Put(ctx, &logical.StorageEntry{Key: VAULT_TOKEN_STORAGE_KEY, Value: []byte(token)}); err != nil {
+		return nil, errors.New(ohlog(fmt.Sprintf("failed to write secret (%s), error: %v", VAULT_TOKEN_STORAGE_KEY, err)))
+	}
 
 	// Store the agbot login renewal rate.
 	renewal := d.Get(CONFIG_AGBOT_RENEWAL_KEY).(int)
 	if renewal == 0 {
 		renewal = DEFAULT_RENEWAL_RATE
 	}
-	req.Storage.Put(ctx, &logical.StorageEntry{Key: AGBOT_RENEWAL_KEY, Value: []byte(strconv.Itoa(renewal))})
+	if err = req.Storage.Put(ctx, &logical.StorageEntry{Key: AGBOT_RENEWAL_KEY, Value: []byte(strconv.Itoa(renewal))}); err != nil {
+		return nil, errors.New(ohlog(fmt.Sprintf("failed to write secret (%s), error: %v", AGBOT_RENEWAL_KEY, err)))
+	}
 
 	// Store the vault API URL used by the plugin to invoke vault APIs.
 	vaultAPIURL := d.Get(CONFIG_VAULT_API_KEY).(string)
 	if vaultAPIURL == "" {
 		vaultAPIURL = DEFAULT_APIURL
 	}
-	req.Storage.Put(ctx, &logical.StorageEntry{Key: VAULT_APIURL_STORAGE_KEY, Value: []byte(token)})
+	if err = req.Storage.Put(ctx, &logical.StorageEntry{Key: VAULT_APIURL_STORAGE_KEY, Value: []byte(token)}); err != nil {
+		return nil, errors.New(ohlog(fmt.Sprintf("failed to write secret (%s), error: %v", VAULT_APIURL_STORAGE_KEY, err)))
+	}
 
 	// Set the URL into the vault client object.
-	o.vc.SetAddress(vaultAPIURL)
+	if err = o.vc.SetAddress(vaultAPIURL); err != nil {
+		return nil, errors.New(ohlog(fmt.Sprintf("failed to set vault URL in the client, error: %v", err)))
+	}
 
 	// Log the config
 	if o.Logger().IsInfo() {
