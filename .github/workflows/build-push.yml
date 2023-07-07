@@ -1,0 +1,89 @@
+# Name of the workflow
+name: build-push
+
+# This workflow triggers on any push (or merge) to the listed branch(es)
+on:
+  push:
+    branches:
+      - master
+
+# Variables available to all jobs
+env:
+  IMAGE_REPO: ${{ vars.DOCKERHUB_REPO }}
+  RUN_NUMBER: ${{ github.run_number }}
+  RUN_NUMBER_OFFSET: ${{ vars.RUN_NUMBER_OFFSET }}
+
+# Jobs that will run when the workflow is triggered
+jobs:
+  # Build and pushes to Dockerhub
+  build-push:
+    runs-on: ubuntu-20.04
+
+    # Environment variables available to all steps
+    env:
+      GOPATH: ${{ github.workspace }}/go 
+      REPO_DIR: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}
+      IMAGE_NAME: amd64_vault
+      BINARY_NAME: hznvaultauth
+
+    # Executed sequentially when job runs
+    steps:
+      # Offset our version build number to prevent collisions
+      - name: Offset Build Number
+        id: offset
+        run: |
+          echo "BUILD_NUMBER=$(($RUN_NUMBER + $RUN_NUMBER_OFFSET))" >> "$GITHUB_OUTPUT"
+      # Upgrade Docker engine version, needed for building images.
+      - name: Install Latest Docker Version
+        run: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs)  stable"
+          sudo apt-get update
+          sudo apt-get install docker-ce
+      
+      # Authenticate Dockerhub to allow pushing to our image repo
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # Checkout our Github repo
+      - name: Checkout Github Repo
+        uses: actions/checkout@v2
+        with:
+          path: go/src/github.com/${{ github.repository }}
+
+      # Prepare the environment
+      - name: Set up golang 1.19
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.19'
+          check-latest: true
+
+      # Configure version variables for later steps, stored in our workflow env. variables
+      - name: Config Version Variables
+        id: config-version
+        run: |
+          cd ${REPO_DIR}
+          echo "VERSION=$(sed -n 's/^VERSION ?= //p' Makefile | cut -d '$' -f 1)" >> $GITHUB_OUTPUT
+      # Compile Vault and Build Docker Images
+      - name: Compile and Build Docker Images
+        run: |
+          cd ${REPO_DIR}
+          make clean
+          make
+        env:
+          VERSION: '${{ steps.config-version.outputs.VERSION }}-${{ steps.offset.outputs.BUILD_NUMBER }}'
+          DOCKER_INAME: '${{ env.IMAGE_REPO }}/${{ env.IMAGE_NAME }}'
+
+      # Push Docker Images to Dockerhub
+      - name: Push Image to Dockerhub
+        run: |
+          docker push ${IMAGE_REPO}/${IMAGE_NAME}:${VERSION}
+          if [[ $GITHUB_REF == 'refs/heads/master' ]]; then \
+          docker tag ${IMAGE_REPO}/${IMAGE_NAME}:${VERSION} ${IMAGE_REPO}/${IMAGE_NAME}:testing && \
+          docker push ${IMAGE_REPO}/${IMAGE_NAME}:testing; \
+          fi
+        env:
+          VERSION: '${{ steps.config-version.outputs.VERSION }}-${{ steps.offset.outputs.BUILD_NUMBER }}'
