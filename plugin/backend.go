@@ -16,6 +16,9 @@ const CONFIG_TOKEN_KEY = "token"
 const CONFIG_AGBOT_RENEWAL_KEY = "renewal"
 const CONFIG_VAULT_API_KEY = "apiurl"
 
+const ACL_USER_CONTENT = "aclmap"
+const ACL_USER_ADMIN = "adminmap"
+
 type ohAuthPlugin struct {
 
 	// The vault auth plugin framework.
@@ -46,7 +49,7 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 		BackendType: logical.TypeCredential,
 		AuthRenew:   b.pathAuthRenew,
 		PathsSpecial: &logical.Paths{
-			Unauthenticated: []string{"login"},
+			Unauthenticated: []string{"login", "acl"},
 			SealWrapStorage: []string{"config"},
 		},
 		Paths: []*framework.Path{
@@ -83,6 +86,26 @@ func OHAuthPlugin(c *logical.BackendConfig) *ohAuthPlugin {
 				Callbacks: map[logical.Operation]framework.OperationFunc{
 					logical.UpdateOperation: b.pathConfig,
 				},
+			},
+			&framework.Path{
+				Pattern: "acl",
+				Fields: map[string]*framework.FieldSchema{
+					AUTH_USER_KEY: &framework.FieldSchema{
+						Type: framework.TypeString,
+					},
+					AUTH_TOKEN_KEY: &framework.FieldSchema{
+                                                Type: framework.TypeString,
+                                        },
+					ACL_USER_CONTENT: &framework.FieldSchema{
+                                                Type: framework.TypeMap,
+                                        },
+					ACL_USER_ADMIN: &framework.FieldSchema{
+						Type: framework.TypeMap,
+					},
+				},
+				Callbacks: map[logical.Operation]framework.OperationFunc{
+                                        logical.UpdateOperation: b.pathACLUpdate,
+                                },
 			},
 		},
 	}

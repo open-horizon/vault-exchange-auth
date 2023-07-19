@@ -28,7 +28,7 @@ const USER_PRIVATE_POLICY1 = `path "openhorizon/data/%s/user/%s/*" {capabilities
 const USER_PRIVATE_POLICY2 = `path "openhorizon/metadata/%s/user/%s/*" {capabilities = ["list", "read", "delete"]}`
 
 // Ensure that the right ACL policies exist so that they can be attached to the user's token.
-func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bool, vaultToken string) (policyName string, err error) {
+func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bool, vaultToken string, newPolicyString string) (policyName string, err error) {
 
 	// TODO: VAULT_TOKEN env var is read by NewClient()
 	o.vc.SetToken(vaultToken)
@@ -83,10 +83,12 @@ func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bo
 
 	}
 
-	// Create the ACL policy for this user.
-
+	// Create the ACL policy for this user if not provided.
 	// Construct an in-memory policy definition specifically for this user.
-	policyString := getPolicyString(userOrg, userId, admin)
+	policyString := newPolicyString
+	if policyString == "" {
+		policyString = getPolicyString(userOrg, userId, admin)
+	}
 
 	if o.Logger().IsInfo() {
 		o.Logger().Info(ohlog(fmt.Sprintf("constructed policy %v for user (%s/%s)", policyString, userOrg, userId)))
