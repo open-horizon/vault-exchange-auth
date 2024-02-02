@@ -26,6 +26,7 @@ const USER_PRIVATE_DENY_POLICY2 = `path "openhorizon/metadata/%s/user/*" {capabi
 // All supported openhorizon users will have these policies attached.
 const USER_PRIVATE_POLICY1 = `path "openhorizon/data/%s/user/%s/*" {capabilities = ["create", "update", "read"]}`
 const USER_PRIVATE_POLICY2 = `path "openhorizon/metadata/%s/user/%s/*" {capabilities = ["list", "read", "delete"]}`
+const USER_PRIVATE_POLICY3 = `path "openhorizon/metadata/%s/user/%s" {capabilities = ["list"]}`
 
 // Ensure that the right ACL policies exist so that they can be attached to the user's token.
 func (o *ohAuthPlugin) setupUserPolicies(userOrg string, userId string, admin bool, vaultToken string) (policyName string, err error) {
@@ -166,7 +167,8 @@ func getPolicyString(userOrg string, userId string, admin bool) (policyString st
 		adminUserPrivateDeny2 := fmt.Sprintf(USER_PRIVATE_DENY_POLICY2, userOrg)
 		userPrivatePolicy1 := fmt.Sprintf(USER_PRIVATE_POLICY1, userOrg, userId)
 		userPrivatePolicy2 := fmt.Sprintf(USER_PRIVATE_POLICY2, userOrg, userId)
-		policyString = fmt.Sprintf("%s %s %s %s %s", nonAdminPolicy, adminUserPrivateDeny1, adminUserPrivateDeny2, userPrivatePolicy1, userPrivatePolicy2)
+		userPrivatePolicy3 := fmt.Sprintf(USER_PRIVATE_POLICY3, userOrg, userId)
+		policyString = fmt.Sprintf("%s %s %s %s %s %s", nonAdminPolicy, adminUserPrivateDeny1, adminUserPrivateDeny2, userPrivatePolicy1, userPrivatePolicy2, userPrivatePolicy3)
 	}
 
 	return
