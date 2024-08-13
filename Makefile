@@ -10,7 +10,7 @@ VAULT_PLUGIN_HASH := ""
 
 EXECUTABLE := hznvaultauth
 DOCKER_INAME ?= openhorizon/$(arch)_vault
-VERSION ?= 1.1.4
+VERSION ?= 1.1.5
 DEV_VERSION ?=testing
 DOCKER_IMAGE_LABELS ?= --label "name=$(arch)_vault" --label "version=$(VERSION)" --label "vault_version=$(VAULT_VERSION)" --label "release=$(shell git rev-parse --short HEAD)"
 
