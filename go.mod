@@ -93,7 +93,7 @@ require (
 
 replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.18.0
-	golang.org/x/net => golang.org/x/net v0.23.0
+	golang.org/x/net => golang.org/x/net v0.7.0
 	golang.org/x/text => golang.org/x/text v0.3.8
 	google.golang.org/grpc => google.golang.org/grpc v1.63.2
 )

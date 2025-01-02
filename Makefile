@@ -4,13 +4,13 @@ SHELL := /bin/bash
 arch_tag ?= $(shell ./tools/arch-tag)
 arch ?= $(arch_tag)
 
-VAULT_VERSION ?= 1.14.10
+VAULT_VERSION ?= 1.14.8
 VAULT_GPGKEY ?= C874011F0AB405110D02105534365D9472D7468F
 VAULT_PLUGIN_HASH := ""
 
 EXECUTABLE := hznvaultauth
 DOCKER_INAME ?= openhorizon/$(arch)_vault
-VERSION ?= 1.1.6
+VERSION ?= 1.1.5
 DEV_VERSION ?=testing
 DOCKER_IMAGE_LABELS ?= --label "name=$(arch)_vault" --label "version=$(VERSION)" --label "vault_version=$(VAULT_VERSION)" --label "release=$(shell git rev-parse --short HEAD)"
 
